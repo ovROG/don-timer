@@ -1,0 +1,97 @@
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  redirect,
+} from "@remix-run/node";
+import { Form, Link, useLoaderData, useRouteError } from "@remix-run/react";
+import { db } from "database/client.server";
+import { eq } from "drizzle-orm";
+import { timersTable, usersTable } from "database/schema.server";
+import { utils } from "~/utils.server";
+import { ActionIcon, Button, Flex, Stack, Title, Tooltip } from "@mantine/core";
+import { Plus, Timer } from "@phosphor-icons/react/dist/ssr";
+import { client } from "redis/client.server";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const cookieUser = await utils.checkAuth(request);
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.id, cookieUser.id),
+    with: { timers: true },
+  });
+
+  if (!user) {
+    throw new Response(cookieUser.id.toString(), {
+      status: 500,
+      statusText: "No user",
+    });
+  }
+
+  return user;
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const data = await request.formData();
+  const id = data.get("id") as string;
+  if (!id) {
+    throw new Response(data, {
+      status: 500,
+      statusText: "No user ID",
+    });
+  }
+  const timer: typeof timersTable.$inferInsert = {
+    user_id: parseInt(id),
+  };
+  const new_timer = await db.insert(timersTable).values(timer).returning();
+
+  client.set(new_timer[0].id, 300000); // 5 min
+
+  return redirect(`/dashboard/timer/${new_timer[0].id}`);
+}
+
+export default function DashboardIndex() {
+  const user = useLoaderData<typeof loader>();
+
+  return (
+    <Stack align="stretch">
+      <Flex gap="md">
+        {user.timers.map((timer) => {
+          return (
+            <Button
+              to={`/dashboard/timer/${timer.id}`}
+              component={Link}
+              fullWidth
+              variant="default"
+              rightSection={<Timer />}
+              key={timer.id}
+            >
+              {timer.name}
+            </Button>
+          );
+        })}
+      </Flex>
+      <Form method="post" navigate={false}>
+        <input hidden defaultValue={user.id} name="id" />
+        <Tooltip label="Новый Таймер">
+          <ActionIcon variant="light" w="100%" type="submit">
+            <Plus />
+          </ActionIcon>
+        </Tooltip>
+      </Form>
+    </Stack>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.log(error);
+  return (
+    <Stack align="stretch" justify="center">
+      <Title c="red" ta="center" fw={800}>
+        500 (Ошибочка)
+      </Title>
+      <Title c="red" ta="center" fw={800}>
+        Ой! Это не по плану!
+      </Title>
+    </Stack>
+  );
+}
