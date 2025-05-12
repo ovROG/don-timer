@@ -1,4 +1,13 @@
-import { ActionIcon, Group, Stack, TextInput, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Group,
+  Paper,
+  PasswordInput,
+  Stack,
+  TextInput,
+  Title,
+  Tooltip,
+} from "@mantine/core";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { PencilLine, Trash } from "@phosphor-icons/react/dist/ssr";
@@ -12,7 +21,10 @@ import { db } from "database/client.server";
 import { timersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
 import { client } from "redis/client.server";
+import { TimerPreview } from "~/components/TimerPreview";
 import { utils } from "~/utils.server";
+
+import styles from "./route.module.css";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.id;
@@ -32,7 +44,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     return redirect(`/dashboard`);
   }
 
-  return { timer, url: url.origin };
+  const encrypted = utils.encryptCuid2(id);
+  const displayUrl = new URL(`${url.origin}/timer`);
+  displayUrl.searchParams.set("key", encrypted.val);
+  displayUrl.searchParams.set("iv", encrypted.iv);
+
+  return { timer, url: displayUrl };
 }
 
 export async function action({ params, request }: ActionFunctionArgs) {
@@ -105,19 +122,28 @@ export default function Timer() {
         </Form>
       </Group>
 
+      <Stack gap="xs">
+        <Title order={5}>Preview</Title>
+        <Paper p="md" className={styles.checkerboard}>
+          <TimerPreview id={timer.id} />
+        </Paper>
+      </Stack>
+
       <Form>
-        <TextInput
-          label="Preview url"
-          readOnly
-          defaultValue={`${url}/timer/${timer.id}`}
-          onDoubleClick={() => {
-            clipboard.copy(`${url}/timer/${timer.id}`);
-            notifications.show({
-              title: "Copied",
-              message: undefined,
-            });
-          }}
-        />
+        <Tooltip label="Не показывайте ссылку!">
+          <PasswordInput
+            label="Widget url"
+            readOnly
+            defaultValue={url.toString()}
+            onDoubleClick={() => {
+              clipboard.copy(url.toString());
+              notifications.show({
+                title: "Copied",
+                message: undefined,
+              });
+            }}
+          />
+        </Tooltip>
       </Form>
     </Stack>
   );

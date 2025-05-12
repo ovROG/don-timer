@@ -11,10 +11,27 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
+import { timerService } from "./services/timer.server";
+import { client } from "redis/client.server";
 
 const ABORT_DELAY = 5_000;
 
-export default function handleRequest(
+function toMove() {
+  let LAST_TICK = 0;
+
+  setInterval(async () => {
+    const now = performance.now();
+    const dt = LAST_TICK > 0 ? LAST_TICK - now : 0;
+    timerService.tick(dt);
+    LAST_TICK = now;
+  }, 1000);
+}
+
+await client.connect();
+console.log("CONNECTED", client.isReady);
+toMove();
+
+export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
