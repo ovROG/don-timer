@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-import styles from "./TimerPreview.module.css";
+import "./TimerPreview.module.css";
 import { format, FormatedTime } from "~/format";
 
 interface Props {
@@ -34,7 +34,7 @@ export const TimerPreview = ({ id }: Props) => {
 
   return (
     <div
-      className={styles.timer}
+      className={"timer"}
     >{`${time?.hours}h ${time?.minutes}m ${time?.seconds}s ${time?.milliseconds}ms`}</div>
   );
 };

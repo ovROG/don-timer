@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { TimerPreview } from "~/components/TimerPreview";
 import { utils } from "~/utils.server";
 
+import "./route.module.css";
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const requestUrl = new URL(request.url);
   const key = requestUrl.searchParams.get("key");
@@ -35,9 +37,5 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function Timer() {
   const timer = useLoaderData<typeof loader>();
-  return (
-    <div>
-      <TimerPreview id={timer.id} />
-    </div>
-  );
+  return <TimerPreview id={timer.id} />;
 }
