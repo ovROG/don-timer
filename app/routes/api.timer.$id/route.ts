@@ -1,7 +1,7 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { client } from "redis/client.server";
+import { TimerData } from "redis/types";
 import { eventStream } from "remix-utils/sse/server";
-import { TimerData } from "~/services/timer.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.id;
@@ -16,11 +16,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   return eventStream(request.signal, (send) => {
     const suber = client.duplicate();
 
-    suber.connect().then(async () => {
+    suber.on("ready", async () => {
       await suber.hGetAll(id).then((raw) => {
         const data = raw as TimerData;
-        send({ event: "upd", data: data.remaining.toString() });
-        send({ event: "sts", data: data.status });
+        send({
+          event: "init",
+          data: JSON.stringify(data),
+        });
       });
 
       await suber.subscribe(`upd:${id}`, (message) => {
@@ -31,9 +33,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       });
     });
 
+    suber.connect();
+
     return () => {
-      suber.unsubscribe();
-      suber.quit();
+      if (suber.isReady) {
+        suber.unsubscribe();
+        suber.quit();
+      }
     };
   });
 }

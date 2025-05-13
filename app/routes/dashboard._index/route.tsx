@@ -10,8 +10,7 @@ import { timersTable, usersTable } from "database/schema.server";
 import { utils } from "~/utils.server";
 import { ActionIcon, Button, Flex, Stack, Title, Tooltip } from "@mantine/core";
 import { Plus, Timer } from "@phosphor-icons/react/dist/ssr";
-import { client } from "redis/client.server";
-import { TimerData, TimerState } from "~/services/timer.server";
+import { timerService } from "~/services/timer.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const cookieUser = await utils.checkAuth(request);
@@ -44,10 +43,7 @@ export async function action({ request }: ActionFunctionArgs) {
   };
   const new_timer = await db.insert(timersTable).values(timer).returning();
 
-  client.hSet(new_timer[0].id, {
-    remaining: 300000, // 5 min
-    status: TimerState.Paused,
-  } as TimerData);
+  timerService.new(new_timer[0].id);
 
   return redirect(`/dashboard/timer/${new_timer[0].id}`);
 }

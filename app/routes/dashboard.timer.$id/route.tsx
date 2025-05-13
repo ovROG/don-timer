@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Fieldset,
   Group,
   Paper,
   PasswordInput,
@@ -20,11 +21,12 @@ import { Form, useLoaderData } from "@remix-run/react";
 import { db } from "database/client.server";
 import { timersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
-import { client } from "redis/client.server";
 import { TimerPreview } from "~/components/TimerPreview";
 import { utils } from "~/utils.server";
 
 import styles from "./route.module.css";
+import ControlPanel from "~/components/ControlPannel";
+import { timerService } from "~/services/timer.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.id;
@@ -49,7 +51,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   displayUrl.searchParams.set("key", encrypted.val);
   displayUrl.searchParams.set("iv", encrypted.iv);
 
-  return { timer, url: displayUrl };
+  return { timer, url: displayUrl, encrypted };
 }
 
 export async function action({ params, request }: ActionFunctionArgs) {
@@ -64,7 +66,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
   }
 
   const update: typeof timersTable.$inferInsert = {
-    name: data.get("name")?.toString() ?? undefined,
+    name: data.get("name")?.toString(),
   };
 
   switch (request.method) {
@@ -75,14 +77,14 @@ export async function action({ params, request }: ActionFunctionArgs) {
       break;
     case "DELETE":
       await db.delete(timersTable).where(eq(timersTable.id, id));
-      await client.del(id);
+      await timerService.delete(id);
       return redirect(`/dashboard`);
   }
   return null;
 }
 
 export default function Timer() {
-  const { timer, url } = useLoaderData<typeof loader>();
+  const { timer, url, encrypted } = useLoaderData<typeof loader>();
 
   const clipboard = useClipboard({ timeout: 500 });
   const [opened, handlers] = useDisclosure(false);
@@ -122,29 +124,27 @@ export default function Timer() {
         </Form>
       </Group>
 
-      <Stack gap="xs">
-        <Title order={5}>Preview</Title>
-        <Paper p="md" className={styles.checkerboard}>
-          <TimerPreview id={timer.id} />
-        </Paper>
-      </Stack>
+      <Paper p="md" className={styles.checkerboard}>
+        <TimerPreview id={timer.id} />
+      </Paper>
 
-      <Form>
-        <Tooltip label="Не показывайте ссылку!">
-          <PasswordInput
-            label="Widget url"
-            readOnly
-            defaultValue={url.toString()}
-            onDoubleClick={() => {
-              clipboard.copy(url.toString());
-              notifications.show({
-                title: "Copied",
-                message: undefined,
-              });
-            }}
-          />
-        </Tooltip>
-      </Form>
+      <Tooltip label="Не показывайте ссылку!">
+        <PasswordInput
+          label="Ссылка на виджет"
+          readOnly
+          defaultValue={url.toString()}
+          onDoubleClick={() => {
+            clipboard.copy(url.toString());
+            notifications.show({
+              title: "Copied",
+              message: undefined,
+            });
+          }}
+        />
+      </Tooltip>
+      <Fieldset legend="Панель Управления">
+        <ControlPanel tKey={encrypted.val} iv={encrypted.iv} />
+      </Fieldset>
     </Stack>
   );
 }

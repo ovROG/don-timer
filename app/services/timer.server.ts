@@ -1,4 +1,5 @@
 import { client } from "redis/client.server";
+import { TimerData, TimerState } from "redis/types";
 
 export const timerService = {
   new: async (id: string) => {
@@ -22,16 +23,11 @@ export const timerService = {
   },
   set: async (id: string, remaining: number) => {
     const result = await client.hSet(id, "remaining", remaining);
-    await client.publish(`upd:${id}`, result.toString());
+    await client.publish(`upd:${id}`, remaining.toString());
     return result;
   },
   add: async (id: string, add: number) => {
-    const result = client.hIncrBy(id, "remaining", add);
-    await client.publish(`upd:${id}`, result.toString());
-    return result;
-  },
-  sub: async (id: string, sub: number) => {
-    const result = await client.hIncrBy(id, "remaining", -sub);
+    const result = parseFloat(await client.hIncrByFloat(id, "remaining", add));
     if (result <= 0) {
       await timerService.expire(id);
       return 0;
@@ -69,6 +65,7 @@ export const timerService = {
       .sAdd(TimerState.Expired, id)
       .sRem(TimerState.Running, id)
       .sRem(TimerState.Paused, id)
+      .publish(`upd:${id}`, "0")
       .publish(`sts:${id}`, TimerState.Expired)
       .exec();
   },
@@ -76,7 +73,9 @@ export const timerService = {
     const runningIds = await client.sMembers(TimerState.Running);
     await Promise.all(
       runningIds.map(async (id) => {
-        const result = await client.hIncrBy(id, "remaining", dt);
+        const result = parseFloat(
+          await client.hIncrByFloat(id, "remaining", dt)
+        );
         if (result <= 0) {
           await timerService.expire(id);
           return;
@@ -85,15 +84,4 @@ export const timerService = {
       })
     );
   },
-};
-
-export enum TimerState {
-  Running = "Running",
-  Paused = "Paused",
-  Expired = "Expired",
-}
-
-export type TimerData = {
-  status: TimerState;
-  remaining: number;
 };
