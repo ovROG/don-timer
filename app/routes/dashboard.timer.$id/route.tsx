@@ -1,32 +1,39 @@
 import {
   ActionIcon,
+  Button,
   Fieldset,
   Group,
   Paper,
   PasswordInput,
   Stack,
+  Textarea,
   TextInput,
   Title,
   Tooltip,
 } from "@mantine/core";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { PencilLine, Trash } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowUUpLeft,
+  Info,
+  PencilLine,
+  Trash,
+} from "@phosphor-icons/react/dist/ssr";
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
   redirect,
 } from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
+import { Form, Link, useLoaderData } from "@remix-run/react";
 import { db } from "database/client.server";
 import { timersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
 import { TimerPreview } from "~/components/TimerPreview";
 import { utils } from "~/utils.server";
-
-import styles from "./route.module.css";
 import ControlPanel from "~/components/ControlPannel";
 import { timerService } from "~/services/timer.server";
+
+import styles from "./route.module.css";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.id;
@@ -47,16 +54,23 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   }
 
   const encrypted = utils.encryptCuid2(id);
+
   const displayUrl = new URL(`${url.origin}/timer`);
   displayUrl.searchParams.set("key", encrypted.val);
   displayUrl.searchParams.set("iv", encrypted.iv);
 
-  return { timer, url: displayUrl, encrypted };
+  const controlUrl = new URL(`${url.origin}/panel`);
+  controlUrl.searchParams.set("key", encrypted.val);
+  controlUrl.searchParams.set("iv", encrypted.iv);
+
+  return { timer, displayUrl, controlUrl, encrypted };
 }
 
 export async function action({ params, request }: ActionFunctionArgs) {
   const id = params.id;
   const data = await request.formData();
+
+  await utils.checkAuth(request);
 
   if (!id) {
     throw new Response(params.id, {
@@ -67,6 +81,8 @@ export async function action({ params, request }: ActionFunctionArgs) {
 
   const update: typeof timersTable.$inferInsert = {
     name: data.get("name")?.toString(),
+    format: data.get("format")?.toString(),
+    css: data.get("css")?.toString(),
   };
 
   switch (request.method) {
@@ -84,7 +100,8 @@ export async function action({ params, request }: ActionFunctionArgs) {
 }
 
 export default function Timer() {
-  const { timer, url, encrypted } = useLoaderData<typeof loader>();
+  const { timer, displayUrl, controlUrl, encrypted } =
+    useLoaderData<typeof loader>();
 
   const clipboard = useClipboard({ timeout: 500 });
   const [opened, handlers] = useDisclosure(false);
@@ -92,6 +109,15 @@ export default function Timer() {
   return (
     <Stack>
       <Group justify="space-between">
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="xl"
+          to={`/dashboard`}
+          component={Link}
+        >
+          <ArrowUUpLeft />
+        </ActionIcon>
         {opened ? (
           <Form method="patch" onSubmit={() => handlers.close()}>
             <Group>
@@ -125,16 +151,37 @@ export default function Timer() {
       </Group>
 
       <Paper p="md" className={styles.checkerboard}>
-        <TimerPreview id={timer.id} />
+        <TimerPreview id={timer.id} timer={timer} />
       </Paper>
+
+      <Form method="patch">
+        <input type="submit" hidden />
+        <TextInput
+          label="Формат"
+          placeholder="HH[h]:mm[m]:ss[s]"
+          name="format"
+          defaultValue={timer.format ?? "HH[h]:mm[m]:ss[s]"}
+          rightSection={
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              href={`https://day.js.org/docs/ru-RU/durations/format`}
+              target="_blank"
+              component="a"
+            >
+              <Info />
+            </ActionIcon>
+          }
+        />
+      </Form>
 
       <Tooltip label="Не показывайте ссылку!">
         <PasswordInput
           label="Ссылка на виджет"
           readOnly
-          defaultValue={url.toString()}
+          defaultValue={displayUrl.toString()}
           onDoubleClick={() => {
-            clipboard.copy(url.toString());
+            clipboard.copy(displayUrl.toString());
             notifications.show({
               title: "Copied",
               message: undefined,
@@ -145,6 +192,34 @@ export default function Timer() {
       <Fieldset legend="Панель Управления">
         <ControlPanel tKey={encrypted.val} iv={encrypted.iv} />
       </Fieldset>
+      <Tooltip label="Не показывайте ссылку!">
+        <PasswordInput
+          label="Ссылка на панель"
+          readOnly
+          defaultValue={controlUrl.toString()}
+          onDoubleClick={() => {
+            clipboard.copy(controlUrl.toString());
+            notifications.show({
+              title: "Copied",
+              message: undefined,
+            });
+          }}
+        />
+      </Tooltip>
+
+      <Form method="patch">
+        <Stack>
+          <Textarea
+            label="CSS"
+            name="css"
+            defaultValue={timer.css ?? ""}
+            resize="vertical"
+          />
+          <Button.Group>
+            <Button type="submit">Сохранить</Button>
+          </Button.Group>
+        </Stack>
+      </Form>
     </Stack>
   );
 }

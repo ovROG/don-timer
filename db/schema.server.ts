@@ -16,6 +16,10 @@ export const usersTable = sqliteTable("users", {
 export const timersTable = sqliteTable("timers", {
   id: cuid2().defaultRandom().primaryKey(),
   name: text().default("New Timer"),
+  format: text().default("HH[h]:mm[m]:ss[s]"),
+  css: text().default(
+    '.timer { color: #bb2020; font-family: "Manrope"; font-weight: bold; }'
+  ),
   user_id: int().references(() => usersTable.id),
 });
 

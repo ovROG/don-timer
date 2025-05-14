@@ -1,16 +1,21 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { format } from "~/format";
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
 
-import "./TimerPreview.module.css";
 import { TimerData, TimerState } from "redis/types";
 import { useFrameUpdate } from "~/hooks/useFrameUpdate";
 
+import "./TimerPreview.module.css";
+import { timersTable } from "database/schema.server";
+dayjs.extend(duration);
+
 interface Props {
   id: string;
+  timer: typeof timersTable.$inferSelect;
 }
 
-export const TimerPreview = ({ id }: Props) => {
+export const TimerPreview = ({ id, timer }: Props) => {
   const [time, setTime] = useState<number>(0);
   const [status, setStatus] = useState<TimerState>(TimerState.Paused);
 
@@ -58,11 +63,20 @@ export const TimerPreview = ({ id }: Props) => {
     };
   }, [id]);
 
-  const fTime = format.formatMs(displayTime);
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = timer.css;
+    document.head.append(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, [timer.css]);
+
+  const fTime = dayjs.duration(displayTime);
 
   return (
-    <div className={"timer"}>
-      {`${fTime.hours}h ${fTime.minutes}m ${fTime.seconds}s //// ${fTime.milliseconds}ms`}{" "}
-    </div>
+    <div className={"timer"}>{`${fTime.format(
+      timer.format ?? "HH[h]:mm[m]:ss[s]"
+    )}`}</div>
   );
 };

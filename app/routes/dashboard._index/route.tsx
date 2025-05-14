@@ -3,12 +3,12 @@ import {
   LoaderFunctionArgs,
   redirect,
 } from "@remix-run/node";
-import { Form, Link, useLoaderData, useRouteError } from "@remix-run/react";
+import { Form, Link, useLoaderData } from "@remix-run/react";
 import { db } from "database/client.server";
 import { eq } from "drizzle-orm";
 import { timersTable, usersTable } from "database/schema.server";
 import { utils } from "~/utils.server";
-import { ActionIcon, Button, Flex, Stack, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Flex, Stack, Tooltip } from "@mantine/core";
 import { Plus, Timer } from "@phosphor-icons/react/dist/ssr";
 import { timerService } from "~/services/timer.server";
 
@@ -77,21 +77,6 @@ export default function DashboardIndex() {
           </ActionIcon>
         </Tooltip>
       </Form>
-    </Stack>
-  );
-}
-
-export function ErrorBoundary() {
-  const error = useRouteError();
-  console.log(error);
-  return (
-    <Stack align="stretch" justify="center">
-      <Title c="red" ta="center" fw={800}>
-        500 (Ошибочка)
-      </Title>
-      <Title c="red" ta="center" fw={800}>
-        Ой! Это не по плану!
-      </Title>
     </Stack>
   );
 }

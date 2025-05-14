@@ -37,5 +37,5 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function Timer() {
   const timer = useLoaderData<typeof loader>();
-  return <TimerPreview id={timer.id} />;
+  return <TimerPreview id={timer.id} timer={timer} />;
 }

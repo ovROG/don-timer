@@ -1,9 +1,11 @@
 import {
+  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteError,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import {
@@ -11,6 +13,8 @@ import {
   createTheme,
   mantineHtmlProps,
   MantineProvider,
+  Stack,
+  Title,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 
@@ -58,4 +62,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return <Outlet />;
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (isRouteErrorResponse(error)) {
+    return (
+      <Stack align="stretch" justify="center">
+        <Title c="red" ta="center" fw={800}>
+          {error.status} (Ошибочка)
+        </Title>
+        <Title c="red" ta="center" fw={800}>
+          {error.statusText}
+        </Title>
+      </Stack>
+    );
+  }
+  return (
+    <Stack align="stretch" justify="center">
+      <Title c="red" ta="center" fw={800}>
+        500 (Ошибочка)
+      </Title>
+      <Title c="red" ta="center" fw={800}>
+        Ой! Это не по плану!
+      </Title>
+    </Stack>
+  );
 }

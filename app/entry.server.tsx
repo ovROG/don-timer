@@ -22,7 +22,6 @@ function toMove() {
   setInterval(async () => {
     const now = performance.now();
     const dt = LAST_TICK > 0 ? LAST_TICK - now : 0;
-    console.log("DT", dt);
     timerService.tick(dt);
     LAST_TICK = now;
   }, 1000);

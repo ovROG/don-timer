@@ -1,10 +1,10 @@
-import { ActionIcon, Group, NumberInput } from "@mantine/core";
-import { Play } from "@phosphor-icons/react/dist/ssr";
+import { Paper } from "@mantine/core";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { db } from "database/client.server";
 import { timersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
+import ControlPanel from "~/components/ControlPannel";
 import { utils } from "~/utils.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -31,18 +31,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  return timer;
+  return { key, iv };
 }
 
-export default function ControlPanel() {
-  const timer = useLoaderData<typeof loader>();
-  console.log(timer);
+export default function ControlPanelPage() {
+  const { key, iv } = useLoaderData<typeof loader>();
   return (
-    <Group>
-      <ActionIcon>
-        <Play />
-      </ActionIcon>
-      <NumberInput />
-    </Group>
+    <Paper p="md">
+      <ControlPanel tKey={key} iv={iv} />
+    </Paper>
   );
 }
