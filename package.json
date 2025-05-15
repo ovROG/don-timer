@@ -11,6 +11,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@donation-alerts/api": "^4.0.0",
+    "@donation-alerts/auth": "^4.0.0",
+    "@donation-alerts/events": "^4.0.0",
     "@libsql/client": "^0.15.4",
     "@mantine/core": "^8.0.0",
     "@mantine/hooks": "^8.0.0",
@@ -22,6 +25,7 @@
     "dayjs": "^1.11.13",
     "drizzle-cuid2": "^2.0.0",
     "drizzle-orm": "^0.43.1",
+    "fast-xml-parser": "^5.2.3",
     "isbot": "^4.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

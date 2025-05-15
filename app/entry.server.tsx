@@ -13,6 +13,7 @@ import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { timerService } from "./services/timer.server";
 import { client } from "redis/client.server";
+import { currencyService } from "./services/currency.server";
 
 const ABORT_DELAY = 5_000;
 
@@ -25,6 +26,11 @@ function toMove() {
     timerService.tick(dt);
     LAST_TICK = now;
   }, 1000);
+
+  currencyService.updataRates();
+  setInterval(async () => {
+    currencyService.updataRates();
+  }, 86400000);
 }
 
 await client.connect();

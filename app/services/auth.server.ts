@@ -3,6 +3,7 @@ import { db } from "database/client.server";
 import { usersTable } from "database/schema.server";
 import { Authenticator } from "remix-auth";
 import { OAuth2Strategy } from "remix-auth-oauth2";
+import { daApiClient, daAuthProvider } from "./donation.server";
 
 export const appSessionStorage = createCookieSessionStorage({
   cookie: {
@@ -32,19 +33,24 @@ authenticator.use(
       scopes: ["oauth-user-show", "oauth-donation-subscribe"],
     },
     async ({ tokens }) => {
-      const userData = await (
-        await fetch("https://www.donationalerts.com/api/v1/user/oauth", {
-          headers: { Authorization: `Bearer ${tokens.accessToken()}` },
-        })
-      ).json();
+      const tokensAndId = await daAuthProvider.addUserForToken({
+        accessToken: tokens.accessToken(),
+        refreshToken: tokens.refreshToken(),
+        expiresIn: tokens.accessTokenExpiresInSeconds(),
+        obtainmentTimestamp: Date.now(),
+      });
+
+      const userData = await daApiClient.users.getUser(tokensAndId.userId);
 
       const user: typeof usersTable.$inferInsert = {
-        id: userData.data.id,
-        name: userData.data.name,
-        avatar: userData.data.avatar,
-        token: tokens.accessToken(),
-        refresh_token: tokens.refreshToken(),
-        da_socket_token: userData.data.socket_connection_token,
+        id: userData.id,
+        name: userData.name,
+        avatar: userData.avatar,
+        token: tokensAndId.accessToken,
+        refresh_token: tokensAndId.refreshToken,
+        da_socket_token: userData.socketConnectionToken,
+        expiresIn: tokensAndId.expiresIn,
+        obtainmentTimestamp: tokensAndId.obtainmentTimestamp,
       };
 
       const db_user = await db
@@ -58,6 +64,8 @@ authenticator.use(
             token: user.token,
             refresh_token: user.refresh_token,
             da_socket_token: user.da_socket_token,
+            expiresIn: tokensAndId.expiresIn,
+            obtainmentTimestamp: tokensAndId.obtainmentTimestamp,
           },
         })
         .returning();

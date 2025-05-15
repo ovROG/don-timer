@@ -3,6 +3,7 @@ import {
   Button,
   Fieldset,
   Group,
+  NumberInput,
   Paper,
   PasswordInput,
   Stack,
@@ -10,6 +11,8 @@ import {
   TextInput,
   Title,
   Tooltip,
+  Text,
+  Grid,
 } from "@mantine/core";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -79,9 +82,14 @@ export async function action({ params, request }: ActionFunctionArgs) {
     });
   }
 
+  const timeRaw = data.get("time")?.toString();
+  const priceRaw = data.get("price")?.toString();
+
   const update: typeof timersTable.$inferInsert = {
     name: data.get("name")?.toString(),
     format: data.get("format")?.toString(),
+    time: timeRaw ? parseInt(timeRaw) * 1000 * 60 : undefined,
+    price: priceRaw ? parseInt(priceRaw) : undefined,
     css: data.get("css")?.toString(),
   };
 
@@ -155,24 +163,47 @@ export default function Timer() {
       </Paper>
 
       <Form method="patch">
-        <input type="submit" hidden />
-        <TextInput
-          label="Формат"
-          placeholder="HH[h]:mm[m]:ss[s]"
-          name="format"
-          defaultValue={timer.format ?? "HH[h]:mm[m]:ss[s]"}
-          rightSection={
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              href={`https://day.js.org/docs/ru-RU/durations/format`}
-              target="_blank"
-              component="a"
-            >
-              <Info />
-            </ActionIcon>
-          }
-        />
+        <Stack>
+          <input type="submit" hidden />
+          <TextInput
+            label="Формат"
+            placeholder="HH[h]:mm[m]:ss[s]"
+            name="format"
+            defaultValue={timer.format ?? "HH[h]:mm[m]:ss[s]"}
+            rightSection={
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                href={`https://day.js.org/docs/ru-RU/durations/format`}
+                target="_blank"
+                component="a"
+              >
+                <Info />
+              </ActionIcon>
+            }
+          />
+          <Grid align="center">
+            <Grid.Col span="auto">
+              <NumberInput
+                placeholder="60"
+                name="time"
+                suffix=" мин."
+                defaultValue={(timer.time ?? 360000) / 1000 / 60}
+              />
+            </Grid.Col>
+            <Grid.Col span="content">
+              <Text>За</Text>
+            </Grid.Col>
+            <Grid.Col span="auto">
+              <NumberInput
+                placeholder="100"
+                name="price"
+                suffix=" руб."
+                defaultValue={timer.price}
+              />
+            </Grid.Col>
+          </Grid>
+        </Stack>
       </Form>
 
       <Tooltip label="Не показывайте ссылку!">

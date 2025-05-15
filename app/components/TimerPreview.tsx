@@ -6,9 +6,10 @@ import duration from "dayjs/plugin/duration";
 import { TimerData, TimerState } from "redis/types";
 import { useFrameUpdate } from "~/hooks/useFrameUpdate";
 
-import "./TimerPreview.module.css";
 import { timersTable } from "database/schema.server";
 dayjs.extend(duration);
+
+import "./TimerPreview.module.css";
 
 interface Props {
   id: string;
@@ -18,10 +19,8 @@ interface Props {
 export const TimerPreview = ({ id, timer }: Props) => {
   const [time, setTime] = useState<number>(0);
   const [status, setStatus] = useState<TimerState>(TimerState.Paused);
-
-  const dtAccRef = useRef<number>(0);
-
   const [displayTime, setDisplayTime] = useState<number>(0);
+  const dtAccRef = useRef<number>(0);
 
   useFrameUpdate((dt) => {
     if (status === TimerState.Running) {

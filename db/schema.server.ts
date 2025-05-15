@@ -9,6 +9,8 @@ export const usersTable = sqliteTable("users", {
 
   token: text().notNull(),
   refresh_token: text().notNull(),
+  expiresIn: int(),
+  obtainmentTimestamp: int(),
 
   da_socket_token: text().notNull(),
 });
@@ -20,6 +22,8 @@ export const timersTable = sqliteTable("timers", {
   css: text().default(
     '.timer { color: #bb2020; font-family: "Manrope"; font-weight: bold; }'
   ),
+  time: int().notNull().default(3600000),
+  price: int().notNull().default(100),
   user_id: int().references(() => usersTable.id),
 });
 
