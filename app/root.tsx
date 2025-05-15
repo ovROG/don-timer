@@ -7,7 +7,7 @@ import {
   ScrollRestoration,
   useRouteError,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
+import type { LinksFunction, MetaFunction } from "@remix-run/node";
 import {
   ColorSchemeScript,
   createTheme,
@@ -21,6 +21,13 @@ import { Notifications } from "@mantine/notifications";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 
+export const meta: MetaFunction = () => {
+  return [
+    { title: "Chronation" },
+    { name: "description", content: "Таймер для этих ваших Донатонов" },
+  ];
+};
+
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -31,6 +38,17 @@ export const links: LinksFunction = () => [
   {
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap",
+  },
+  {
+    rel: "icon",
+    href: "/favicon-96x96.png",
+    type: "image/png",
+    sizes: "96x96",
+  },
+  {
+    rel: "icon",
+    href: "favicon.svg",
+    type: "image/svg+xml",
   },
 ];
 
@@ -44,13 +62,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link
-          rel="icon"
-          type="image/png"
-          href="/favicon-96x96.png"
-          sizes="96x96"
-        />
-        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
         <ColorSchemeScript />
         <Meta />
         <Links />

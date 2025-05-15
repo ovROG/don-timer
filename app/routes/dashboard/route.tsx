@@ -13,19 +13,12 @@ import {
 } from "@mantine/core";
 import { Moon, Sun } from "@phosphor-icons/react/dist/ssr";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
-import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { CustomSvg } from "~/svg";
 import { utils } from "~/utils.server";
 
 import styles from "./route.module.css";
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Chronation" },
-    { name: "description", content: "Таймер для этих ваших Донатонов" },
-  ];
-};
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await utils.checkAuth(request);
