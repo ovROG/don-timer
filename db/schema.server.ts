@@ -13,6 +13,8 @@ export const usersTable = sqliteTable("users", {
   obtainmentTimestamp: int(),
 
   da_socket_token: text().notNull(),
+
+  timers_limit: int().default(2),
 });
 
 export const timersTable = sqliteTable("timers", {

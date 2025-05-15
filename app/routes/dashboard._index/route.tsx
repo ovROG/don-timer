@@ -32,15 +32,34 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export async function action({ request }: ActionFunctionArgs) {
   const data = await request.formData();
   const id = data.get("id") as string;
+
   if (!id) {
     throw new Response(data, {
       status: 500,
       statusText: "No user ID",
     });
   }
+
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.id, parseInt(id)),
+    with: { timers: true },
+  });
+
+  if (!user) {
+    throw new Response(id, {
+      status: 500,
+      statusText: "No user",
+    });
+  }
+
+  if (user.timers_limit! <= user.timers.length) {
+    return null;
+  }
+
   const timer: typeof timersTable.$inferInsert = {
     user_id: parseInt(id),
   };
+
   const new_timer = await db.insert(timersTable).values(timer).returning();
 
   timerService.new(new_timer[0].id);
@@ -53,7 +72,7 @@ export default function DashboardIndex() {
 
   return (
     <Stack align="stretch">
-      <Flex gap="md">
+      <Flex gap="md" direction="column">
         {user.timers.map((timer) => {
           return (
             <Button
@@ -72,7 +91,12 @@ export default function DashboardIndex() {
       <Form method="post" navigate={false}>
         <input hidden defaultValue={user.id} name="id" />
         <Tooltip label="Новый Таймер">
-          <ActionIcon variant="light" w="100%" type="submit">
+          <ActionIcon
+            variant="light"
+            w="100%"
+            type="submit"
+            disabled={user.timers_limit! <= user.timers.length}
+          >
             <Plus />
           </ActionIcon>
         </Tooltip>
