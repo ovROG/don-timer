@@ -16,9 +16,4 @@ jobs:
         username: ${{ secrets.VPS_USERNAME }}
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
-          cd don-timer
-          git pull
-          npm i
-          npm run build
-          drizzle-kit migrate
-          pm2 reload all
+          ./deploy.sh

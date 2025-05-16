@@ -33,7 +33,7 @@ function toMove() {
   }, 86400000);
 }
 
-await client.connect();
+client.connect(); // TODO: await fix
 console.log("CONNECTED", client.isReady);
 toMove();
 
