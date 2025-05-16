@@ -13,6 +13,7 @@ import {
   Tooltip,
   Text,
   Grid,
+  Divider,
 } from "@mantine/core";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -220,6 +221,9 @@ export default function Timer() {
           }}
         />
       </Tooltip>
+
+      <Divider />
+
       <Fieldset legend="Панель Управления">
         <ControlPanel tKey={encrypted.val} iv={encrypted.iv} />
       </Fieldset>
@@ -238,6 +242,8 @@ export default function Timer() {
         />
       </Tooltip>
 
+      <Divider />
+
       <Form method="patch">
         <Stack>
           <Textarea
@@ -247,7 +253,9 @@ export default function Timer() {
             resize="vertical"
           />
           <Button.Group>
-            <Button type="submit">Сохранить</Button>
+            <Button type="submit" color="gray">
+              Сохранить CSS
+            </Button>
           </Button.Group>
         </Stack>
       </Form>

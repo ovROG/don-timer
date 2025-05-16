@@ -22,7 +22,7 @@ export const timersTable = sqliteTable("timers", {
   name: text().default("New Timer"),
   format: text().default("HH[h]:mm[m]:ss[s]"),
   css: text().default(
-    '.timer { color: #bb2020; font-family: "Manrope"; font-weight: bold; }'
+    '.timer { color: #bb2020; font-family: "Manrope"; font-weight: bold; font-size: 100px; }'
   ),
   time: int().notNull().default(3600000),
   price: int().notNull().default(100),
