@@ -9,11 +9,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-          token: ${{ secrets.REPO_TOKEN }}
-
     - name: Deploy
       uses: appleboy/ssh-action@v1
       with:
