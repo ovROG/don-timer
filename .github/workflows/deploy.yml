@@ -11,6 +11,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+          ssh-key: ${{ secrets.REPO_SSH_KEY }}
 
     - name: Deploy
       uses: appleboy/ssh-action@v1
