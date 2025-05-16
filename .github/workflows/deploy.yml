@@ -12,8 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-          ssh-user: 'deploy'
-          ssh-key: ${{ secrets.REPO_SSH_KEY }}
+          token: ${{ secrets.REPO_TOKEN }}
 
     - name: Deploy
       uses: appleboy/ssh-action@v1
