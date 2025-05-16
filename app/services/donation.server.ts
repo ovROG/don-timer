@@ -52,6 +52,7 @@ export const daEventSystem = {
     userEventsClient.onConnect(() => {
       console.log(`DA Connected! ${id}`);
     });
+    
     userEventsClient.onDisconnect(() => {
       console.log(`DA Disconnected! ${id}`);
     });

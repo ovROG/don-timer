@@ -33,9 +33,15 @@ function toMove() {
   }, 86400000);
 }
 
-client.connect(); // TODO: await fix
-console.log("CONNECTED", client.isReady);
-toMove();
+client
+  .connect()
+  .then(() => {
+    console.log("CONNECTED", client.isReady);
+    toMove();
+  })
+  .catch((e) => {
+    console.log("ERROR", e);
+  });
 
 export default async function handleRequest(
   request: Request,

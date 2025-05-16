@@ -51,18 +51,22 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     });
   }
 
-  const onDonation = (e: DonationAlertsDonationEvent) => {
-    const rate = timer.time / timer.price;
-    if (e.currency === "RUB") {
-      const t = e.amount * rate;
-      timerService.add(id, t);
-    } else {
-      const t = currencyService.convert(e.currency, e.amount) * rate;
-      timerService.add(id, t);
-    }
-  };
+  try {
+    const onDonation = (e: DonationAlertsDonationEvent) => {
+      const rate = timer.time / timer.price;
+      if (e.currency === "RUB") {
+        const t = e.amount * rate;
+        timerService.add(id, t);
+      } else {
+        const t = currencyService.convert(e.currency, e.amount) * rate;
+        timerService.add(id, t);
+      }
+    };
 
-  await daEventSystem.addListner(timer.user_id, onDonation);
+    await daEventSystem.addListner(timer.user_id, onDonation);
+  } catch (e) {
+    console.log(e);
+  }
 
   return eventStream(request.signal, (send) => {
     const suber = client.duplicate();
@@ -91,7 +95,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         await suber.unsubscribe();
         await suber.quit();
       }
-      await daEventSystem.removeListner(timer.user_id!);
+      try {
+        await daEventSystem.removeListner(timer.user_id!);
+      } catch (e) {
+        console.log(e);
+      }
     };
   });
 }
