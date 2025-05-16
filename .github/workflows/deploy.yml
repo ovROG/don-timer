@@ -12,6 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+          ssh-user: 'deploy'
           ssh-key: ${{ secrets.REPO_SSH_KEY }}
 
     - name: Deploy
