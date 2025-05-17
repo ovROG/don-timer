@@ -9,6 +9,7 @@ import { timersTable } from "database/schema.server";
 dayjs.extend(duration);
 
 import "./TimerPreview.module.css";
+import { timeFormatting } from "~/fomat";
 
 interface Props {
   id: string;
@@ -73,8 +74,9 @@ export const TimerPreview = ({ id, timer }: Props) => {
   const fTime = dayjs.duration(displayTime);
 
   return (
-    <div className={"timer"}>{`${fTime.format(
-      timer.format ?? "HH[h]:mm[m]:ss[s]"
+    <div className={"timer"}>{`${timeFormatting.format(
+      fTime,
+      timer.format ?? "hh[h]:mm[m]:ss[s]"
     )}`}</div>
   );
 };

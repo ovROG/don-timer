@@ -19,7 +19,6 @@ import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   ArrowUUpLeft,
-  Info,
   PencilLine,
   Trash,
 } from "@phosphor-icons/react/dist/ssr";
@@ -166,23 +165,18 @@ export default function Timer() {
       <Form method="patch">
         <Stack>
           <input type="submit" hidden />
-          <TextInput
-            label="Формат"
-            placeholder="HH[h]:mm[m]:ss[s]"
-            name="format"
-            defaultValue={timer.format ?? "HH[h]:mm[m]:ss[s]"}
-            rightSection={
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                href={`https://day.js.org/docs/ru-RU/durations/format`}
-                target="_blank"
-                component="a"
-              >
-                <Info />
-              </ActionIcon>
+          <Tooltip
+            label={
+              "hh/h - часы, mm/m - минуты, ss/s - секунды, []-игнорировать"
             }
-          />
+          >
+            <TextInput
+              label="Формат"
+              placeholder="HH[h]:mm[m]:ss[s]"
+              name="format"
+              defaultValue={timer.format ?? "HH[h]:mm[m]:ss[s]"}
+            />
+          </Tooltip>
           <Grid align="center">
             <Grid.Col span="auto">
               <NumberInput
