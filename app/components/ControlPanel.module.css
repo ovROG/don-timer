@@ -1,0 +1,6 @@
+.tab {
+  border-color: var(--tab-border-color);
+  border-style: solid;
+  border-width: calc(0.0625rem * var(--mantine-scale));
+  border-top: 0;
+}
