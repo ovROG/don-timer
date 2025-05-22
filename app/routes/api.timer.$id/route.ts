@@ -52,8 +52,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   }
 
   try {
-    const onDonation = (e: DonationAlertsDonationEvent) => {
-      const rate = timer.time / timer.price;
+    const onDonation = async (e: DonationAlertsDonationEvent) => {
+      const curr_timer = await db.query.timersTable.findFirst({
+        where: eq(timersTable.id, id),
+      });
+
+      const rate = curr_timer!.time / curr_timer!.price;
       if (e.currency === "RUB") {
         const t = e.amount * rate;
         timerService.add(id, t);
