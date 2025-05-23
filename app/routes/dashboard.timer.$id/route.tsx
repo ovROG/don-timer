@@ -13,7 +13,6 @@ import {
   Tooltip,
   Text,
   Grid,
-  Divider,
 } from "@mantine/core";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -162,6 +161,64 @@ export default function Timer() {
         <TimerPreview id={timer.id} timer={timer} />
       </Paper>
 
+      <Tooltip label="Не показывайте ссылку!">
+        <PasswordInput
+          label="Ссылка на виджет таймера"
+          readOnly
+          defaultValue={displayUrl.toString()}
+          onDoubleClick={() => {
+            clipboard.copy(displayUrl.toString());
+            notifications.show({
+              title: "Copied",
+              message: undefined,
+            });
+          }}
+        />
+      </Tooltip>
+      <Tooltip label="Не показывайте ссылку!">
+        <PasswordInput
+          label="Ссылка на панель управления"
+          readOnly
+          defaultValue={controlUrl.toString()}
+          onDoubleClick={() => {
+            clipboard.copy(controlUrl.toString());
+            notifications.show({
+              title: "Copied",
+              message: undefined,
+            });
+          }}
+        />
+      </Tooltip>
+
+      <TimerConfig timer={timer} />
+
+      <Fieldset legend="Панель Управления">
+        <ControlPanel tKey={encrypted.val} iv={encrypted.iv} />
+      </Fieldset>
+
+      <Fieldset legend="CSS">
+        <Form method="patch">
+          <Stack>
+            <Textarea
+              name="css"
+              defaultValue={timer.css ?? ""}
+              resize="vertical"
+            />
+            <Button.Group>
+              <Button type="submit" fullWidth variant="light">
+                Сохранить CSS
+              </Button>
+            </Button.Group>
+          </Stack>
+        </Form>
+      </Fieldset>
+    </Stack>
+  );
+}
+
+const TimerConfig = ({ timer }: { timer: typeof timersTable.$inferSelect }) => {
+  return (
+    <Fieldset legend="Настройки">
       <Form method="patch">
         <Stack>
           <input type="submit" hidden />
@@ -198,61 +255,11 @@ export default function Timer() {
               />
             </Grid.Col>
           </Grid>
+          <Button type="submit" fullWidth variant="light">
+            Сохранить
+          </Button>
         </Stack>
       </Form>
-
-      <Tooltip label="Не показывайте ссылку!">
-        <PasswordInput
-          label="Ссылка на виджет"
-          readOnly
-          defaultValue={displayUrl.toString()}
-          onDoubleClick={() => {
-            clipboard.copy(displayUrl.toString());
-            notifications.show({
-              title: "Copied",
-              message: undefined,
-            });
-          }}
-        />
-      </Tooltip>
-
-      <Divider />
-
-      <Fieldset legend="Панель Управления">
-        <ControlPanel tKey={encrypted.val} iv={encrypted.iv} />
-      </Fieldset>
-      <Tooltip label="Не показывайте ссылку!">
-        <PasswordInput
-          label="Ссылка на панель"
-          readOnly
-          defaultValue={controlUrl.toString()}
-          onDoubleClick={() => {
-            clipboard.copy(controlUrl.toString());
-            notifications.show({
-              title: "Copied",
-              message: undefined,
-            });
-          }}
-        />
-      </Tooltip>
-
-      <Divider />
-
-      <Form method="patch">
-        <Stack>
-          <Textarea
-            label="CSS"
-            name="css"
-            defaultValue={timer.css ?? ""}
-            resize="vertical"
-          />
-          <Button.Group>
-            <Button type="submit" color="gray">
-              Сохранить CSS
-            </Button>
-          </Button.Group>
-        </Stack>
-      </Form>
-    </Stack>
+    </Fieldset>
   );
-}
+};

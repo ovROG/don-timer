@@ -4,3 +4,18 @@
   border-width: calc(0.0625rem * var(--mantine-scale));
   border-top: 0;
 }
+
+.set:hover {
+  background-color: var(--mantine-color-blue-light-hover);
+  border-color: var(--mantine-color-blue-outline);
+}
+
+.add:hover {
+  background-color: var(--mantine-color-green-light-hover);
+  border-color: var(--mantine-color-green-outline);
+}
+
+.sub:hover {
+  background-color: var(--mantine-color-red-light-hover);
+  border-color: var(--mantine-color-red-outline);
+}

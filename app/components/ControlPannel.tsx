@@ -74,7 +74,7 @@ export default function ControlPanel({ tKey, iv }: Props) {
         <Button
           variant="outline"
           onClick={() => updateState(TimerState.Running)}
-          rightSection={<Play />}
+          rightSection={<Play weight="fill" />}
         >
           Старт
         </Button>
@@ -82,7 +82,7 @@ export default function ControlPanel({ tKey, iv }: Props) {
           variant="outline"
           color="red"
           onClick={() => updateState(TimerState.Paused)}
-          rightSection={<Pause />}
+          rightSection={<Pause weight="fill" />}
         >
           Стоп
         </Button>
@@ -124,24 +124,33 @@ export default function ControlPanel({ tKey, iv }: Props) {
         <Button
           variant="default"
           fullWidth
+          className={styles.set}
           onClick={() => updateTime("set")}
-          rightSection={<Equals />}
+          rightSection={
+            <Equals weight="bold" color="var(--mantine-color-blue-outline)" />
+          }
         >
           Установить
         </Button>
         <Button
           variant="default"
           fullWidth
+          className={styles.add}
           onClick={() => updateTime("add")}
-          rightSection={<Plus />}
+          rightSection={
+            <Plus weight="bold" color="var(--mantine-color-green-outline)" />
+          }
         >
           Добавить
         </Button>
         <Button
           variant="default"
           fullWidth
+          className={styles.sub}
           onClick={() => updateTime("sub")}
-          rightSection={<Minus />}
+          rightSection={
+            <Minus weight="bold" color="var(--mantine-color-red-outline)" />
+          }
         >
           Отнять
         </Button>
