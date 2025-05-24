@@ -15,6 +15,8 @@ export const usersTable = sqliteTable("users", {
   da_socket_token: text().notNull(),
 
   timers_limit: int().default(2),
+
+  is_admin: int({ mode: "boolean" }).default(false),
 });
 
 export const timersTable = sqliteTable("timers", {
