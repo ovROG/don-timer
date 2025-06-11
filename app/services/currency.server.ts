@@ -11,6 +11,7 @@ interface Valute {
 
 export const currencyService = {
   rates: [] as Valute[],
+  lastUpdate: undefined as undefined | Date,
   updataRates: async () => {
     const response = await fetch("https://www.cbr.ru/scripts/XML_daily.asp");
     const rawData = await response.arrayBuffer();
@@ -26,6 +27,7 @@ export const currencyService = {
     );
 
     currencyService.rates = data.ValCurs.Valute;
+    currencyService.lastUpdate = new Date();
   },
   convert: (from: string, value: number) => {
     const fromValute = currencyService.rates.find((el) => {

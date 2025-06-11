@@ -1,0 +1,4 @@
+.ratesBox {
+  overflow-y: scroll;
+  overflow-x: hidden;
+}

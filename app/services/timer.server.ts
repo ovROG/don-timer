@@ -84,4 +84,8 @@ export const timerService = {
       })
     );
   },
+  active: async () => {
+    const runningIds = await client.sMembers(TimerState.Running);
+    return runningIds;
+  },
 };

@@ -11,7 +11,7 @@ import {
   useComputedColorScheme,
   Button,
 } from "@mantine/core";
-import { Moon, Sun } from "@phosphor-icons/react/dist/ssr";
+import { Moon, Siren, Sun } from "@phosphor-icons/react/dist/ssr";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useNavigate } from "@remix-run/react";
@@ -76,9 +76,19 @@ export default function DashboardLayout() {
               <Menu.Dropdown>
                 <Menu.Label>{user.name}</Menu.Label>
                 <Menu.Divider />
+                {user.is_admin && (
+                  <Menu.Item
+                    leftSection={<Siren />}
+                    onClick={() => {
+                      navigate("/admin");
+                    }}
+                  >
+                    <Text fw={700}>Admin Panel</Text>
+                  </Menu.Item>
+                )}
                 <Menu.Item
                   color="red"
-                  rightSection={<SignOut />}
+                  leftSection={<SignOut />}
                   onClick={() => {
                     navigate("/auth/logout");
                   }}
