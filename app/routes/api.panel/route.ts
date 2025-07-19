@@ -3,6 +3,7 @@ import { db } from "database/client.server";
 import { timersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
 import { TimerState } from "redis/types";
+import { actionsLogService } from "~/services/actions-log.server";
 import { timerService } from "~/services/timer.server";
 import { utils } from "~/utils.server";
 
@@ -27,6 +28,19 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const id = utils.decryptCuid2(key, iv);
 
+  const timer = await db.query.timersTable.findFirst({
+    where: eq(timersTable.id, id),
+  });
+
+  if (!timer) {
+    throw new Response(id, {
+      status: 500,
+      statusText: "No timer",
+    });
+  }
+
+  const rate = timer.time / timer.price;
+
   switch (state) {
     case TimerState.Running:
       await timerService.start(id);
@@ -42,38 +56,28 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   if (type === "amount") {
-    const timer = await db.query.timersTable.findFirst({
-      where: eq(timersTable.id, id),
-    });
-
-    if (!timer) {
-      throw new Response(id, {
-        status: 500,
-        statusText: "No timer",
-      });
-    }
-
-    const rate = timer.time / timer.price;
-
     if (set) {
       await timerService.set(id, parseFloat(set) * rate);
+      await actionsLogService.log(`Time Update`, timer.user_id!);
       return data;
     }
 
     if (delta) {
       await timerService.add(id, parseFloat(delta) * rate);
+      await actionsLogService.log(`Time Update`, timer.user_id!);
       return data;
     }
-
     return data;
   } else {
     if (set) {
       await timerService.set(id, parseFloat(set));
+      await actionsLogService.log(`Time Update`, timer.user_id!);
       return data;
     }
 
     if (delta) {
       await timerService.add(id, parseFloat(delta));
+      await actionsLogService.log(`Time Update`, timer.user_id!);
       return data;
     }
   }

@@ -36,6 +36,7 @@ import ControlPanel from "~/components/ControlPannel";
 import { timerService } from "~/services/timer.server";
 
 import styles from "./route.module.css";
+import { actionsLogService } from "~/services/actions-log.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.id;
@@ -72,7 +73,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
   const id = params.id;
   const data = await request.formData();
 
-  await utils.checkAuth(request);
+  const user = await utils.checkAuth(request);
 
   if (!id) {
     throw new Response(params.id, {
@@ -96,9 +97,11 @@ export async function action({ params, request }: ActionFunctionArgs) {
     case "POST":
       break;
     case "PATCH":
+      await actionsLogService.log("Timer Data Updated", user.id);
       await db.update(timersTable).set(update).where(eq(timersTable.id, id));
       break;
     case "DELETE":
+      await actionsLogService.log(`Timer ${id} Deleted`, user.id);
       await db.delete(timersTable).where(eq(timersTable.id, id));
       await timerService.delete(id);
       return redirect(`/dashboard`);

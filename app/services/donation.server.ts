@@ -7,6 +7,7 @@ import {
   DonationAlertsDonationEvent,
   UserEventsClient,
 } from "@donation-alerts/events";
+import { actionsLogService } from "./actions-log.server";
 
 export const daAuthProvider = new RefreshingAuthProvider({
   clientId: process.env.DA_CLIENT_ID!,
@@ -49,12 +50,14 @@ export const daEventSystem = {
 
     await userEventsClient.onDonation(callback);
 
-    userEventsClient.onConnect(() => {
+    userEventsClient.onConnect(async () => {
       console.log(`DA Connected! ${id}`);
+      await actionsLogService.log(`Donationalert Connected!`, id);
     });
-    
-    userEventsClient.onDisconnect(() => {
+
+    userEventsClient.onDisconnect(async () => {
       console.log(`DA Disconnected! ${id}`);
+      await actionsLogService.log(`Donationalert Disconnected!`, id);
     });
 
     daEventSystem.listners.set(id, { client: userEventsClient, count: 1 });

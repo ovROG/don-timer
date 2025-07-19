@@ -1,4 +1,4 @@
-import { Box, NavLink, Stack } from "@mantine/core";
+import { Box, Container, NavLink, Stack } from "@mantine/core";
 import { Siren, Users } from "@phosphor-icons/react/dist/ssr";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Outlet, NavLink as RNavLink } from "@remix-run/react";
@@ -29,7 +29,10 @@ export default function Admin() {
           component={RNavLink}
         />
       </Stack>
-      <Outlet />
+
+      <Container>
+        <Outlet />
+      </Container>
     </Box>
   );
 }

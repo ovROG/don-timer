@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { client } from "redis/client.server";
 import { TimerData } from "redis/types";
 import { eventStream } from "remix-utils/sse/server";
+import { actionsLogService } from "~/services/actions-log.server";
 import { currencyService } from "~/services/currency.server";
 import { daAuthProvider, daEventSystem } from "~/services/donation.server";
 import { timerService } from "~/services/timer.server";
@@ -65,6 +66,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         const t = currencyService.convert(e.currency, e.amount) * rate;
         timerService.add(id, t);
       }
+
+      await actionsLogService.log(
+        `Donation! ${e.amount} ${e.currency}`,
+        user.id
+      );
     };
 
     await daEventSystem.addListner(timer.user_id, onDonation);
@@ -87,7 +93,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       await suber.subscribe(`upd:${id}`, (message) => {
         send({ event: "upd", data: message });
       });
-      await suber.subscribe(`sts:${id}`, (message) => {
+      await suber.subscribe(`sts:${id}`, async (message) => {
+        await actionsLogService.log(`Timer Status Update ${message}`, user.id);
         send({ event: "sts", data: message });
       });
     });

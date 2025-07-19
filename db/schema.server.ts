@@ -1,5 +1,5 @@
 import { cuid2 } from "drizzle-cuid2/sqlite";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const usersTable = sqliteTable("users", {
@@ -31,13 +31,30 @@ export const timersTable = sqliteTable("timers", {
   user_id: int().references(() => usersTable.id),
 });
 
-export const usersToTimers = relations(usersTable, ({ many }) => ({
+export const userLogsTable = sqliteTable("user_logs", {
+  id: cuid2().defaultRandom().primaryKey(),
+  user_id: int().references(() => usersTable.id),
+  timestamp: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  text: text(),
+});
+
+export const usersTableRelations = relations(usersTable, ({ many }) => ({
   timers: many(timersTable),
+  logs: many(userLogsTable),
 }));
 
-export const timersToUsers = relations(timersTable, ({ one }) => ({
+export const timersTableRelations = relations(timersTable, ({ one }) => ({
   user: one(usersTable, {
     fields: [timersTable.user_id],
+    references: [usersTable.id],
+  }),
+}));
+
+export const userLogsTableRelations = relations(userLogsTable, ({ one }) => ({
+  user: one(usersTable, {
+    fields: [userLogsTable.user_id],
     references: [usersTable.id],
   }),
 }));

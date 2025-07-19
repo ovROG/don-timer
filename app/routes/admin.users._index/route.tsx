@@ -1,6 +1,11 @@
 import { Avatar, Pagination, Stack, Table } from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import {
+  Link,
+  useLoaderData,
+  useLocation,
+  useNavigate,
+} from "@remix-run/react";
 import { db } from "database/client.server";
 import { usersTable } from "database/schema.server";
 import { count } from "drizzle-orm";
@@ -9,14 +14,14 @@ import { utils } from "~/utils.server";
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await utils.checkAuth(request);
 
-  //todo: maybe check with db
+  //TODO: maybe check with db
   if (!user.is_admin) {
     return redirect(`/`);
   }
 
   const requestUrl = new URL(request.url);
 
-  const page = parseInt(requestUrl.searchParams.get("page") ?? "0");
+  const page = parseInt(requestUrl.searchParams.get("page") ?? "1");
   const limit = 25;
   const offset = (page - 1) * limit;
 
@@ -49,6 +54,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function Admin() {
   const { data } = useLoaderData<typeof loader>();
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(location.search);
+    params.set("page", page.toString());
+
+    navigate(`${location.pathname}?${params.toString()}`);
+  };
+
   return (
     <Stack align="center" h="100%" justify="space-between" py="md">
       <Table>
@@ -62,7 +77,9 @@ export default function Admin() {
           {data.users.map((user) => {
             return (
               <Table.Tr key={user.id}>
-                <Table.Td>{user.name}</Table.Td>
+                <Table.Td>
+                  <Link to={`/admin/users/${user.id}`}>{user.name}</Link>
+                </Table.Td>
                 <Table.Td>
                   <Avatar src={user.avatar} />
                 </Table.Td>
@@ -71,7 +88,7 @@ export default function Admin() {
           })}
         </Table.Tbody>
       </Table>
-      <Pagination total={data.totalPages} />
+      <Pagination total={data.totalPages} onChange={handlePageChange} />
     </Stack>
   );
 }

@@ -14,7 +14,7 @@ import { timerService } from "~/services/timer.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const cookieUser = await utils.checkAuth(request);
-  
+
   const user = await db.query.usersTable.findFirst({
     where: eq(usersTable.id, cookieUser.id),
     with: { timers: true },

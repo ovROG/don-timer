@@ -14,10 +14,14 @@ import { renderToPipeableStream } from "react-dom/server";
 import { timerService } from "./services/timer.server";
 import { client } from "redis/client.server";
 import { currencyService } from "./services/currency.server";
+import { db } from "database/client.server";
+import { userLogsTable } from "database/schema.server";
+import { lt } from "drizzle-orm";
 
 const ABORT_DELAY = 5_000;
 
 function toMove() {
+  //TODO: Separate it
   let LAST_TICK = 0;
 
   setInterval(async () => {
@@ -30,6 +34,11 @@ function toMove() {
   currencyService.updataRates();
   setInterval(async () => {
     currencyService.updataRates();
+
+    const threshold = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30);
+    await db
+      .delete(userLogsTable)
+      .where(lt(userLogsTable.timestamp, threshold));
   }, 86400000);
 }
 

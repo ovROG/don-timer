@@ -44,11 +44,10 @@ export default function Admin() {
     useLoaderData<typeof loader>();
 
   return (
-    <Stack align="center" h="100%" py="md">
+    <Stack align="center" h="100%">
       <Fieldset
         legend={`Rates (${lastRateUpdate?.toLocaleString()})`}
         h="30dvh"
-        w="80%"
         className={styles.ratesBox}
       >
         <Table>
@@ -71,12 +70,7 @@ export default function Admin() {
         </Table>
       </Fieldset>
 
-      <Fieldset
-        legend={`Active Timers`}
-        h="30dvh"
-        w="80%"
-        className={styles.ratesBox}
-      >
+      <Fieldset legend={`Active Timers`} h="30dvh" className={styles.ratesBox}>
         <Table>
           <Table.Thead>
             <Table.Tr>

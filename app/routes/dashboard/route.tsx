@@ -10,8 +10,17 @@ import {
   useMantineColorScheme,
   useComputedColorScheme,
   Button,
+  Container,
 } from "@mantine/core";
-import { Moon, Siren, Sun } from "@phosphor-icons/react/dist/ssr";
+import {
+  Moon,
+  Notebook,
+  Plugs,
+  PlugsConnected,
+  RowsPlusBottom,
+  Siren,
+  Sun,
+} from "@phosphor-icons/react/dist/ssr";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useNavigate } from "@remix-run/react";
@@ -19,15 +28,17 @@ import { CustomSvg } from "~/svg";
 import { utils } from "~/utils.server";
 
 import styles from "./route.module.css";
+import { daEventSystem } from "~/services/donation.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await utils.checkAuth(request);
   const donationLink = process.env.DONATION_LINK!;
-  return { user, donationLink };
+  const isActive = daEventSystem.listners.has(user.id);
+  return { user, donationLink, isActive };
 }
 
 export default function DashboardLayout() {
-  const { user, donationLink } = useLoaderData<typeof loader>();
+  const { user, donationLink, isActive } = useLoaderData<typeof loader>();
 
   const navigate = useNavigate();
 
@@ -74,7 +85,23 @@ export default function DashboardLayout() {
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Label>{user.name}</Menu.Label>
+                <Menu.Label>{user.name} </Menu.Label>
+                <Menu.Label>
+                  DA Connection:{" "}
+                  {isActive ? (
+                    <PlugsConnected
+                      color={isActive ? "green" : "red"}
+                      weight="fill"
+                      style={{ verticalAlign: "middle" }}
+                    />
+                  ) : (
+                    <Plugs
+                      color={isActive ? "green" : "red"}
+                      weight="fill"
+                      style={{ verticalAlign: "middle" }}
+                    />
+                  )}
+                </Menu.Label>
                 <Menu.Divider />
                 {user.is_admin && (
                   <Menu.Item
@@ -86,6 +113,22 @@ export default function DashboardLayout() {
                     <Text fw={700}>Admin Panel</Text>
                   </Menu.Item>
                 )}
+                <Menu.Item
+                  leftSection={<RowsPlusBottom />}
+                  onClick={() => {
+                    navigate("/dashboard");
+                  }}
+                >
+                  <Text fw={700}>Dashboard</Text>
+                </Menu.Item>
+                <Menu.Item
+                  leftSection={<Notebook />}
+                  onClick={() => {
+                    navigate("/dashboard/logs");
+                  }}
+                >
+                  <Text fw={700}>Logs</Text>
+                </Menu.Item>
                 <Menu.Item
                   color="red"
                   leftSection={<SignOut />}
@@ -101,7 +144,9 @@ export default function DashboardLayout() {
         </Group>
       </AppShell.Header>
       <AppShell.Main pos="relative">
-        <Outlet />
+        <Container>
+          <Outlet />
+        </Container>
       </AppShell.Main>
     </AppShell>
   );

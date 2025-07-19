@@ -8,6 +8,13 @@
       "when": 1748003933381,
       "tag": "0001_chilly_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1752916952967,
+      "tag": "0002_sturdy_mole_man",
+      "breakpoints": true
     }
   ]
 }

@@ -24,7 +24,7 @@
     "@remix-run/serve": "^2.16.6",
     "dayjs": "^1.11.13",
     "drizzle-cuid2": "^2.0.0",
-    "drizzle-orm": "^0.43.1",
+    "drizzle-orm": "^0.44.3",
     "fast-xml-parser": "^5.2.3",
     "isbot": "^4.1.0",
     "react": "^18.2.0",
