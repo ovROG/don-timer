@@ -25,6 +25,11 @@ export const meta: MetaFunction = () => {
   return [
     { title: "Chronation" },
     { name: "description", content: "Таймер для этих ваших Донатонов" },
+    {
+      name: "keywords",
+      content:
+        "таймер для стримера, donation alerts таймер, obs таймер, донат таймер, таймер для донатонов, донатон, timer, donathon",
+    },
   ];
 };
 
