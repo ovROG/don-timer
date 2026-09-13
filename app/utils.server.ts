@@ -1,18 +1,61 @@
+import { db } from "database/client.server";
 import { usersTable } from "database/schema.server";
-import { appSessionStorage } from "./services/auth.server";
 import { redirect } from "@remix-run/node";
+import { eq } from "drizzle-orm";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { appSessionStorage } from "./services/auth.server";
+
+const getSessionUserId = async (request: Request) => {
+  const session = await appSessionStorage.getSession(
+    request.headers.get("cookie")
+  );
+  const userId: unknown = session.get("userId");
+  return typeof userId === "number" ? userId : null;
+};
+
+const checkAuth = async (request: Request) => {
+  const userId = await getSessionUserId(request);
+  if (userId === null) throw redirect("/");
+
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.id, userId),
+    columns: {
+      id: true,
+      name: true,
+      avatar: true,
+      timers_limit: true,
+      is_admin: true,
+    },
+  });
+  if (!user) throw redirect("/auth/logout");
+  return user;
+};
+
+const checkAdmin = async (request: Request) => {
+  const user = await checkAuth(request);
+  if (!user.is_admin) throw redirect("/");
+  return user;
+};
+
+const parsePage = (request: Request) => {
+  const page = Number(new URL(request.url).searchParams.get("page") ?? "1");
+  return Number.isInteger(page) && page > 0 ? page : 1;
+};
+
+// remix-serve ignores X-Forwarded-Proto, so behind nginx request.url is always http.
+const publicOrigin = (request: Request) => {
+  const url = new URL(request.url);
+  const proto = request.headers.get("X-Forwarded-Proto")?.split(",")[0].trim();
+  if (proto === "http" || proto === "https") url.protocol = `${proto}:`;
+  return url.origin;
+};
 
 export const utils = {
-  checkAuth: async (request: Request) => {
-    const session = await appSessionStorage.getSession(
-      request.headers.get("cookie")
-    );
-
-    const user = session.get("user") as typeof usersTable.$inferSelect;
-    if (!user) throw redirect("/");
-    return user;
-  },
+  getSessionUserId,
+  checkAuth,
+  checkAdmin,
+  parsePage,
+  publicOrigin,
   encryptCuid2: (cuid2: string) => {
     const iv = randomBytes(16);
     const cipher = createCipheriv(

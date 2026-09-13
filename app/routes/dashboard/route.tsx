@@ -29,16 +29,19 @@ import { utils } from "~/utils.server";
 
 import styles from "./route.module.css";
 import { daEventSystem } from "~/services/donation.server";
+import { daStatusView } from "~/da-status";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await utils.checkAuth(request);
   const donationLink = process.env.DONATION_LINK!;
-  const isActive = daEventSystem.listners.has(user.id);
-  return { user, donationLink, isActive };
+  const da = daEventSystem.getStatus(user.id);
+  return { user, donationLink, da };
 }
 
 export default function DashboardLayout() {
-  const { user, donationLink, isActive } = useLoaderData<typeof loader>();
+  const { user, donationLink, da } = useLoaderData<typeof loader>();
+  const daView = daStatusView[da.status];
+  const daIconColor = `var(--mantine-color-${daView.color}-filled)`;
 
   const navigate = useNavigate();
 
@@ -87,20 +90,21 @@ export default function DashboardLayout() {
               <Menu.Dropdown>
                 <Menu.Label>{user.name} </Menu.Label>
                 <Menu.Label>
-                  DA Connection:{" "}
-                  {isActive ? (
+                  DonationAlerts:{" "}
+                  {da.status === "connected" ? (
                     <PlugsConnected
-                      color={isActive ? "green" : "red"}
+                      color={daIconColor}
                       weight="fill"
                       style={{ verticalAlign: "middle" }}
                     />
                   ) : (
                     <Plugs
-                      color={isActive ? "green" : "red"}
+                      color={daIconColor}
                       weight="fill"
                       style={{ verticalAlign: "middle" }}
                     />
-                  )}
+                  )}{" "}
+                  {daView.label}
                 </Menu.Label>
                 <Menu.Divider />
                 {user.is_admin && (

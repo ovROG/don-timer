@@ -1,0 +1,25 @@
+[Unit]
+Description=Chronation donathon timer
+After=network-online.target redis-server.service
+# Wants, not Requires: Redis may be installed some other way on a shared server.
+Wants=network-online.target redis-server.service
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_GROUP__
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=__APP_DIR__/.env
+Environment=NODE_ENV=production
+# Only nginx should reach the app.
+Environment=HOST=127.0.0.1
+Environment=PORT=__APP_PORT__
+ExecStart=__APP_DIR__/node_modules/.bin/remix-serve ./build/server/index.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

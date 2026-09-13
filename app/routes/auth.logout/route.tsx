@@ -1,14 +1,12 @@
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
-import { usersTable } from "database/schema.server";
 import { appSessionStorage } from "~/services/auth.server";
-import { daAuthProvider } from "~/services/donation.server";
 
+// The user's tokens stay in the DonationAlerts auth provider: an OBS timer
+// can still be live after logging out of the dashboard.
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await appSessionStorage.getSession(
     request.headers.get("cookie")
   );
-  const user = session.get("user") as typeof usersTable.$inferSelect;
-  daAuthProvider.removeUser(user.id);
   return redirect("/", {
     headers: { "Set-Cookie": await appSessionStorage.destroySession(session) },
   });

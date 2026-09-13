@@ -1,19 +1,13 @@
 import { Box, Container, NavLink, Stack } from "@mantine/core";
 import { Siren, Users } from "@phosphor-icons/react/dist/ssr";
-import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { Outlet, NavLink as RNavLink } from "@remix-run/react";
 import { utils } from "~/utils.server";
 
 import styles from "./route.module.css";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await utils.checkAuth(request);
-
-  //todo: maybe check with db
-  if (!user.is_admin) {
-    return redirect(`/`);
-  }
-
+  await utils.checkAdmin(request);
   return null;
 }
 

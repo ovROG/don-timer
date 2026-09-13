@@ -3,9 +3,16 @@ import { db } from "database/client.server";
 import { timersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
 import { TimerState } from "redis/types";
+import { timeFormatting } from "~/fomat";
 import { actionsLogService } from "~/services/actions-log.server";
 import { timerService } from "~/services/timer.server";
 import { utils } from "~/utils.server";
+
+const parseNumber = (raw: FormDataEntryValue | null) => {
+  if (raw === null || raw === "") return null;
+  const value = parseFloat(raw.toString());
+  return Number.isFinite(value) ? value : null;
+};
 
 export async function action({ request }: ActionFunctionArgs) {
   const requestUrl = new URL(request.url);
@@ -22,9 +29,9 @@ export async function action({ request }: ActionFunctionArgs) {
   const data = await request.formData();
 
   const state = data.get("state")?.toString();
-  const delta = data.get("delta")?.toString();
-  const set = data.get("set")?.toString();
-  const type = data.get("type")?.toString();
+  const set = parseNumber(data.get("set"));
+  const delta = parseNumber(data.get("delta"));
+  const isAmount = data.get("type") === "amount";
 
   const id = utils.decryptCuid2(key, iv);
 
@@ -32,55 +39,65 @@ export async function action({ request }: ActionFunctionArgs) {
     where: eq(timersTable.id, id),
   });
 
-  if (!timer) {
-    throw new Response(id, {
-      status: 500,
-      statusText: "No timer",
+  if (!timer?.user_id) {
+    throw new Response(null, {
+      status: 404,
+      statusText: "Not Found",
     });
   }
 
-  const rate = timer.time / timer.price;
+  const userId = timer.user_id;
+  const log = (text: string) =>
+    actionsLogService.log(text, userId, { timerId: id, source: "panel" });
 
   switch (state) {
     case TimerState.Running:
       await timerService.start(id);
+      await log("Timer started");
       break;
     case TimerState.Expired:
       await timerService.expire(id);
+      await log("Timer stopped");
       break;
     case TimerState.Paused:
       await timerService.pause(id);
+      await log("Timer paused");
       break;
     default:
       break;
   }
 
-  if (type === "amount") {
-    if (set) {
-      await timerService.set(id, parseFloat(set) * rate);
-      await actionsLogService.log(`Time Update`, timer.user_id!);
-      return data;
-    }
-
-    if (delta) {
-      await timerService.add(id, parseFloat(delta) * rate);
-      await actionsLogService.log(`Time Update`, timer.user_id!);
-      return data;
-    }
-    return data;
-  } else {
-    if (set) {
-      await timerService.set(id, parseFloat(set));
-      await actionsLogService.log(`Time Update`, timer.user_id!);
-      return data;
-    }
-
-    if (delta) {
-      await timerService.add(id, parseFloat(delta));
-      await actionsLogService.log(`Time Update`, timer.user_id!);
-      return data;
-    }
+  if (isAmount && timer.price <= 0) {
+    throw new Response(null, { status: 400, statusText: "Timer has no price" });
   }
 
-  return data;
+  const toMs = (value: number) =>
+    isAmount ? value * (timer.time / timer.price) : value;
+  const describe = (value: number) =>
+    isAmount ? `${value} RUB` : timeFormatting.short(value);
+
+  // Results come back from Redis as strings; allow a millisecond of rounding.
+  if (set !== null) {
+    const requested = toMs(set);
+    const stored = await timerService.set(id, requested, timer);
+    const limited =
+      stored !== null && stored < requested - 1
+        ? ` (limited to ${timeFormatting.short(stored)})`
+        : "";
+    await log(`Time set to ${describe(set)}${limited}`);
+  } else if (delta !== null) {
+    const requested = toMs(delta);
+    const result = await timerService.add(id, requested, timer);
+    const limited =
+      result && result.applied < requested - 1
+        ? ` (limited to +${timeFormatting.short(result.applied)})`
+        : "";
+    await log(
+      `Time ${delta < 0 ? "subtracted" : "added"}: ${describe(
+        Math.abs(delta)
+      )}${limited}`
+    );
+  }
+
+  return new Response(null, { status: 204 });
 }

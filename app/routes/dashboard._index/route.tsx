@@ -6,75 +6,54 @@ import {
 import { Form, Link, useLoaderData } from "@remix-run/react";
 import { db } from "database/client.server";
 import { eq } from "drizzle-orm";
-import { timersTable, usersTable } from "database/schema.server";
+import { timersTable } from "database/schema.server";
 import { utils } from "~/utils.server";
 import { ActionIcon, Button, Flex, Stack, Tooltip } from "@mantine/core";
 import { Plus, Timer } from "@phosphor-icons/react/dist/ssr";
 import { timerService } from "~/services/timer.server";
+import { actionsLogService } from "~/services/actions-log.server";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const cookieUser = await utils.checkAuth(request);
-
-  const user = await db.query.usersTable.findFirst({
-    where: eq(usersTable.id, cookieUser.id),
-    with: { timers: true },
+const getTimers = (userId: number) =>
+  db.query.timersTable.findMany({
+    where: eq(timersTable.user_id, userId),
+    columns: { id: true, name: true },
   });
 
-  if (!user) {
-    throw new Response(cookieUser.id.toString(), {
-      status: 500,
-      statusText: "No user",
-    });
-  }
-
-  return user;
+export async function loader({ request }: LoaderFunctionArgs) {
+  const user = await utils.checkAuth(request);
+  const timers = await getTimers(user.id);
+  return { timers, canCreate: (user.timers_limit ?? 0) > timers.length };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const data = await request.formData();
-  const id = data.get("id") as string;
+  const user = await utils.checkAuth(request);
+  const timers = await getTimers(user.id);
 
-  if (!id) {
-    throw new Response(data, {
-      status: 500,
-      statusText: "No user ID",
-    });
-  }
-
-  const user = await db.query.usersTable.findFirst({
-    where: eq(usersTable.id, parseInt(id)),
-    with: { timers: true },
-  });
-
-  if (!user) {
-    throw new Response(id, {
-      status: 500,
-      statusText: "No user",
-    });
-  }
-
-  if (user.timers_limit! <= user.timers.length) {
+  if ((user.timers_limit ?? 0) <= timers.length) {
     return null;
   }
 
-  const timer: typeof timersTable.$inferInsert = {
-    user_id: parseInt(id),
-  };
+  const [timer] = await db
+    .insert(timersTable)
+    .values({ user_id: user.id })
+    .returning({ id: timersTable.id });
 
-  const new_timer = await db.insert(timersTable).values(timer).returning();
+  await timerService.new(timer.id);
+  await actionsLogService.log("Timer created", user.id, {
+    timerId: timer.id,
+    source: "dashboard",
+  });
 
-  timerService.new(new_timer[0].id);
-
-  return redirect(`/dashboard/timer/${new_timer[0].id}`);
+  return redirect(`/dashboard/timer/${timer.id}`);
 }
 
 export default function DashboardIndex() {
-  const user = useLoaderData<typeof loader>();
+  const { timers, canCreate } = useLoaderData<typeof loader>();
 
   return (
     <Stack align="stretch">
       <Flex gap="md" direction="column">
-        {user.timers.map((timer) => {
+        {timers.map((timer) => {
           return (
             <Button
               to={`/dashboard/timer/${timer.id}`}
@@ -90,13 +69,12 @@ export default function DashboardIndex() {
         })}
       </Flex>
       <Form method="post" navigate={false}>
-        <input hidden defaultValue={user.id} name="id" />
         <Tooltip label="Новый Таймер">
           <ActionIcon
             variant="light"
             w="100%"
             type="submit"
-            disabled={user.timers_limit! <= user.timers.length}
+            disabled={!canCreate}
           >
             <Plus />
           </ActionIcon>

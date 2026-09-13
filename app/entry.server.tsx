@@ -11,46 +11,23 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
-import { timerService } from "./services/timer.server";
 import { client } from "redis/client.server";
-import { currencyService } from "./services/currency.server";
-import { db } from "database/client.server";
-import { userLogsTable } from "database/schema.server";
-import { lt } from "drizzle-orm";
+import { startBackgroundJobs } from "./services/background.server";
 
 const ABORT_DELAY = 5_000;
 
-function toMove() {
-  //TODO: Separate it
-  let LAST_TICK = 0;
-
-  setInterval(async () => {
-    const now = performance.now();
-    const dt = LAST_TICK > 0 ? LAST_TICK - now : 0;
-    timerService.tick(dt);
-    LAST_TICK = now;
-  }, 1000);
-
-  currencyService.updataRates();
-  setInterval(async () => {
-    currencyService.updataRates();
-
-    const threshold = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30);
-    await db
-      .delete(userLogsTable)
-      .where(lt(userLogsTable.timestamp, threshold));
-  }, 86400000);
+// Dev HMR re-runs this module with the client already connected.
+if (!client.isOpen) {
+  client
+    .connect()
+    .then(() => {
+      console.log("Redis connected");
+      startBackgroundJobs();
+    })
+    .catch((e) => {
+      console.error("Redis connection failed", e);
+    });
 }
-
-client
-  .connect()
-  .then(() => {
-    console.log("CONNECTED", client.isReady);
-    toMove();
-  })
-  .catch((e) => {
-    console.log("ERROR", e);
-  });
 
 export default async function handleRequest(
   request: Request,

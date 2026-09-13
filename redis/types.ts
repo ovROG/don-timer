@@ -7,4 +7,6 @@ export enum TimerState {
 export type TimerData = {
   status: TimerState;
   remaining: number;
+  /** Time counted down while running; used by the total limit. */
+  elapsed: number;
 };

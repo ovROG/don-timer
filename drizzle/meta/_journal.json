@@ -3,17 +3,10 @@
   "dialect": "sqlite",
   "entries": [
     {
-      "idx": 1,
+      "idx": 0,
       "version": "6",
-      "when": 1748003933381,
-      "tag": "0001_chilly_dreaming_celestial",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1752916952967,
-      "tag": "0002_sturdy_mole_man",
+      "when": 1789257458809,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

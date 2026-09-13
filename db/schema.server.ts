@@ -1,6 +1,10 @@
 import { cuid2 } from "drizzle-cuid2/sqlite";
 import { relations, sql } from "drizzle-orm";
-import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export type LogSource = "donation" | "panel" | "dashboard" | "da" | "system";
+
+export type LimitMode = "none" | "remaining" | "total";
 
 export const usersTable = sqliteTable("users", {
   id: int().primaryKey(),
@@ -28,17 +32,30 @@ export const timersTable = sqliteTable("timers", {
   ),
   time: int().notNull().default(3600000),
   price: int().notNull().default(100),
+  donations_enabled: int({ mode: "boolean" }).notNull().default(true),
+  // remaining: time on the timer can't exceed limit_time; total: elapsed + remaining can't.
+  limit_mode: text().$type<LimitMode>().notNull().default("none"),
+  limit_time: int(),
   user_id: int().references(() => usersTable.id),
 });
 
-export const userLogsTable = sqliteTable("user_logs", {
-  id: cuid2().defaultRandom().primaryKey(),
-  user_id: int().references(() => usersTable.id),
-  timestamp: int({ mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  text: text(),
-});
+export const userLogsTable = sqliteTable(
+  "user_logs",
+  {
+    id: cuid2().defaultRandom().primaryKey(),
+    user_id: int().references(() => usersTable.id),
+    // No FK: logs outlive deleted timers.
+    timer_id: text(),
+    source: text().$type<LogSource>(),
+    timestamp: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    text: text(),
+  },
+  (table) => [
+    index("user_logs_user_id_timestamp_idx").on(table.user_id, table.timestamp),
+  ]
+);
 
 export const usersTableRelations = relations(usersTable, ({ many }) => ({
   timers: many(timersTable),
@@ -56,5 +73,9 @@ export const userLogsTableRelations = relations(userLogsTable, ({ one }) => ({
   user: one(usersTable, {
     fields: [userLogsTable.user_id],
     references: [usersTable.id],
+  }),
+  timer: one(timersTable, {
+    fields: [userLogsTable.timer_id],
+    references: [timersTable.id],
   }),
 }));

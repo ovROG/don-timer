@@ -10,6 +10,13 @@ declare module "@remix-run/node" {
 }
 
 export default defineConfig({
+  server: {
+    watch: {
+      // The app writes to SQLite on almost every request. Remix sends an HMR
+      // update for any watched file change, which wipes the dev page CSS.
+      ignored: ["**/*.db", "**/*.db-journal", "**/*.db-wal", "**/*.db-shm"],
+    },
+  },
   plugins: [
     remix({
       future: {

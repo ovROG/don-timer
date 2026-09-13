@@ -1,5 +1,6 @@
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { appSessionStorage, authenticator } from "~/services/auth.server";
+import { daEventSystem } from "~/services/donation.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await authenticator.authenticate("donationalerts", request);
@@ -8,7 +9,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     request.headers.get("cookie")
   );
 
-  session.set("user", user);
+  // Only the id: the cookie is signed, not encrypted, so tokens must not live in it.
+  session.set("userId", user.id);
+
+  // Fresh tokens were just stored; retry a connection that failed on the old ones.
+  const { status } = daEventSystem.getStatus(user.id);
+  if (status === "auth_error" || status === "error") {
+    daEventSystem.reconnect(user.id);
+  }
 
   return redirect("/dashboard", {
     headers: {

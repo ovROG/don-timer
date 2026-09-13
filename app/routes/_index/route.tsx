@@ -3,16 +3,12 @@ import styles from "./route.module.css";
 import { CustomSvg } from "~/svg";
 import { Link } from "@remix-run/react";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
-import { appSessionStorage } from "~/services/auth.server";
+import { utils } from "~/utils.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await appSessionStorage.getSession(
-    request.headers.get("cookie")
-  );
-
-  const user = session.get("user");
-
-  if (user) return redirect("/dashboard");
+  if ((await utils.getSessionUserId(request)) !== null) {
+    return redirect("/dashboard");
+  }
   return null;
 }
 

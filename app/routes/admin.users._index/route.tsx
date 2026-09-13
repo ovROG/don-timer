@@ -1,5 +1,5 @@
 import { Avatar, Pagination, Stack, Table } from "@mantine/core";
-import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import {
   Link,
   useLoaderData,
@@ -12,16 +12,9 @@ import { count } from "drizzle-orm";
 import { utils } from "~/utils.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await utils.checkAuth(request);
+  await utils.checkAdmin(request);
 
-  //TODO: maybe check with db
-  if (!user.is_admin) {
-    return redirect(`/`);
-  }
-
-  const requestUrl = new URL(request.url);
-
-  const page = parseInt(requestUrl.searchParams.get("page") ?? "1");
+  const page = utils.parsePage(request);
   const limit = 25;
   const offset = (page - 1) * limit;
 

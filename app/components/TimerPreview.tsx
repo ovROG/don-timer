@@ -4,6 +4,7 @@ import duration from "dayjs/plugin/duration";
 
 import { TimerData, TimerState } from "redis/types";
 import { useFrameUpdate } from "~/hooks/useFrameUpdate";
+import { DaStatusSnapshot } from "~/da-status";
 
 import { timersTable } from "database/schema.server";
 dayjs.extend(duration);
@@ -11,16 +12,24 @@ dayjs.extend(duration);
 import "./TimerPreview.module.css";
 import { timeFormatting } from "~/fomat";
 
+const MAX_RETRY_DELAY = 30_000;
+
 interface Props {
   id: string;
   timer: typeof timersTable.$inferSelect;
+  onDaStatus?: (status: DaStatusSnapshot) => void;
 }
 
-export const TimerPreview = ({ id, timer }: Props) => {
+export const TimerPreview = ({ id, timer, onDaStatus }: Props) => {
   const [time, setTime] = useState<number>(0);
   const [status, setStatus] = useState<TimerState>(TimerState.Paused);
   const [displayTime, setDisplayTime] = useState<number>(0);
   const dtAccRef = useRef<number>(0);
+  const onDaStatusRef = useRef(onDaStatus);
+
+  useEffect(() => {
+    onDaStatusRef.current = onDaStatus;
+  }, [onDaStatus]);
 
   useFrameUpdate((dt) => {
     if (status === TimerState.Running) {
@@ -33,31 +42,58 @@ export const TimerPreview = ({ id, timer }: Props) => {
   });
 
   useEffect(() => {
-    const eventSource = new EventSource(`/api/timer/${id}`);
+    let eventSource: EventSource;
+    let retryTimer: number | undefined;
+    let retryDelay = 1000;
+    let stopped = false;
 
-    eventSource.addEventListener("init", (e) => {
-      const data = JSON.parse(e.data) as TimerData;
-      setTime(data.remaining);
-      setDisplayTime(Math.trunc(data.remaining));
-      setStatus(data.status);
-    });
+    const connect = () => {
+      eventSource = new EventSource(`/api/timer/${id}`);
 
-    eventSource.addEventListener("upd", (e) => {
-      dtAccRef.current = 0;
-      setDisplayTime(Math.trunc(e.data));
-      setTime(e.data);
-    });
+      eventSource.addEventListener("init", (e) => {
+        retryDelay = 1000;
+        const data = JSON.parse(e.data) as TimerData;
+        const remaining = Number(data.remaining);
+        dtAccRef.current = 0;
+        setTime(remaining);
+        setDisplayTime(Math.trunc(remaining));
+        setStatus(data.status);
+      });
 
-    eventSource.addEventListener("sts", (e) => {
-      setStatus(e.data as TimerState);
-    });
+      eventSource.addEventListener("upd", (e) => {
+        const remaining = Number(e.data);
+        dtAccRef.current = 0;
+        setDisplayTime(Math.trunc(remaining));
+        setTime(remaining);
+      });
 
-    eventSource.onerror = (error) => {
-      console.error("EventSource failed:", error);
-      eventSource.close();
+      eventSource.addEventListener("sts", (e) => {
+        setStatus(e.data as TimerState);
+      });
+
+      eventSource.addEventListener("da", (e) => {
+        onDaStatusRef.current?.(JSON.parse(e.data) as DaStatusSnapshot);
+      });
+
+      eventSource.addEventListener("deleted", () => {
+        stopped = true;
+        eventSource.close();
+      });
+
+      eventSource.onerror = () => {
+        // The browser reconnects a dropped stream by itself and only gives up
+        // when the server responds with an error, e.g. while the app restarts.
+        if (stopped || eventSource.readyState !== EventSource.CLOSED) return;
+        retryTimer = window.setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
+      };
     };
 
+    connect();
+
     return () => {
+      stopped = true;
+      window.clearTimeout(retryTimer);
       eventSource.close();
     };
   }, [id]);

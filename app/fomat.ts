@@ -21,4 +21,14 @@ export const timeFormatting = {
     });
     return formeted;
   },
+  /** Compact duration for log messages, e.g. "1h 5m 3s". */
+  short: (ms: number) => {
+    const total = Math.round(ms / 1000);
+    const h = Math.trunc(total / 3600);
+    const m = Math.trunc((total % 3600) / 60);
+    const s = total % 60;
+    return [h && `${h}h`, m && `${m}m`, (s || total === 0) && `${s}s`]
+      .filter(Boolean)
+      .join(" ");
+  },
 };

@@ -1,77 +1,50 @@
-import { Stack, Table } from "@mantine/core";
-import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { Avatar, Group, Stack, Title } from "@mantine/core";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { db } from "database/client.server";
 import { usersTable } from "database/schema.server";
 import { eq } from "drizzle-orm";
+import { DaStatusBadge } from "~/components/DaStatusBadge";
+import { LogsTable } from "~/components/LogsTable";
+import { actionsLogService } from "~/services/actions-log.server";
+import { daEventSystem } from "~/services/donation.server";
 import { utils } from "~/utils.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
-  const id = params.id;
-  const cookieUser = await utils.checkAuth(request);
+  await utils.checkAdmin(request);
 
-  //TODO: maybe check with db
-  if (!cookieUser.is_admin) {
-    return redirect(`/`);
-  }
-
-  if (!id) {
-    throw new Response(id, {
-      status: 500,
-      statusText: "No user ID",
-    });
-  }
-
-  const parsedID = parseInt(id);
-  if (isNaN(parsedID)) {
-    throw new Response(id, {
-      status: 500,
-      statusText: "No user ID",
-    });
+  const userId = Number(params.id);
+  if (!Number.isInteger(userId)) {
+    throw new Response(null, { status: 404, statusText: "Not Found" });
   }
 
   const user = await db.query.usersTable.findFirst({
-    where: eq(usersTable.id, parseInt(id)),
-    with: {
-      logs: true,
-    },
+    where: eq(usersTable.id, userId),
+    columns: { id: true, name: true, avatar: true },
   });
 
   if (!user) {
-    throw new Response(id, {
-      status: 500,
-      statusText: `No user ${id} Found`,
+    throw new Response(null, {
+      status: 404,
+      statusText: `No user ${userId} Found`,
     });
   }
 
-  return user;
+  const logs = await actionsLogService.page(user.id, utils.parsePage(request));
+  return { user, da: daEventSystem.getStatus(user.id), ...logs };
 }
 
 export default function AdminUserPage() {
-  const user = useLoaderData<typeof loader>();
+  const { user, da, logs, page, totalPages } = useLoaderData<typeof loader>();
 
   return (
     <Stack>
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Time</Table.Th>
-            <Table.Th>Message</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {user.logs
-            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-            .map((log) => {
-              return (
-                <Table.Tr key={log.id}>
-                  <Table.Td>{log.timestamp.toLocaleString()}</Table.Td>
-                  <Table.Td>{log.text}</Table.Td>
-                </Table.Tr>
-              );
-            })}
-        </Table.Tbody>
-      </Table>
+      <Group>
+        <Avatar src={user.avatar} />
+        <Title order={3}>{user.name}</Title>
+        <DaStatusBadge status={da} />
+      </Group>
+      <LogsTable logs={logs} page={page} totalPages={totalPages} />
     </Stack>
   );
 }
