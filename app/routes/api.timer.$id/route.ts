@@ -10,7 +10,7 @@ import { timerEvents } from "~/services/timer-events.server";
 // nginx drops proxied connections that stay silent past proxy_read_timeout (60s by default).
 const HEARTBEAT_INTERVAL = 15_000;
 
-export async function loader({ params, request }: LoaderFunctionArgs) {
+export async function loader({ params, request, context }: LoaderFunctionArgs) {
   const id = params.id;
 
   const timer = id
@@ -27,8 +27,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const timerId = timer.id;
   const userId = timer.user_id;
 
+  // request.signal may never abort, which would leave the stream open forever
+  // after the client leaves (see AppLoadContext.disconnectSignal).
   const response = eventStream(
-    request.signal,
+    context.disconnectSignal ?? request.signal,
     (send, close) => {
       const sendState = () =>
         client
@@ -74,8 +76,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     { headers: { "X-Accel-Buffering": "no" } }
   );
 
-  // remix-serve gzips responses, and gzip holds events back until its buffer
-  // fills. The compression middleware skips responses marked no-transform.
+  // The compression middleware gzips responses, and gzip holds events back
+  // until its buffer fills. It skips responses marked no-transform.
   response.headers.set("Cache-Control", "no-cache, no-transform");
   return response;
 }

@@ -114,7 +114,9 @@ DA_REDIRECT=$scheme://$DOMAIN/auth/callback
 DONATION_LINK=${DONATION_LINK:-}
 EOF
 else
-  echo "Keeping existing $ENV_FILE"
+  # Keep the secrets, but DA_REDIRECT follows DOMAIN in case it changed.
+  echo "Keeping existing $ENV_FILE, setting DA_REDIRECT for $DOMAIN"
+  sed -i "s|^DA_REDIRECT=.*|DA_REDIRECT=$scheme://$DOMAIN/auth/callback|" "$ENV_FILE"
 fi
 
 step "systemd service"

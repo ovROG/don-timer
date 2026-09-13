@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```sh
 npm run dev         # Remix + Vite dev server
 npm run build       # production build -> build/server, build/client
-npm start           # remix-serve ./build/server/index.js
+npm start           # node server.js (serves ./build)
 npm run lint        # eslint
 npm run typecheck   # tsc (noEmit)
 npx drizzle-kit generate --name <name>   # create a migration in ./drizzle after editing db/schema.server.ts
@@ -29,8 +29,8 @@ Runtime requirements: a Redis server on the default localhost port (`createClien
 - `deploy/setup.sh` sets up the app on an Ubuntu/Debian VPS that may already host other sites. Run it as root with `DOMAIN` and `REPO_URL`, plus optional `LETSENCRYPT_EMAIL`.
   - **Leaves the server alone:** it never creates system users (the app runs as `APP_USER`, defaulting to the sudo user), never changes other nginx sites, never reconfigures a Redis that was already there, and never upgrades an existing Node.js. It refuses to continue if the app port is taken or another nginx site already serves `DOMAIN`, and it rolls its own site back if `nginx -t` fails.
   - **What it does:** installs whatever is missing, clones into `/opt/chronation`, generates `.env`, and installs `deploy/chronation.service` and `deploy/nginx.conf` from templates (`__DOMAIN__`, `__APP_USER__`, …). Then it optionally runs certbot for `DOMAIN` only, and runs the first deploy.
-- `deploy.sh` updates the server: pull, `npm ci`, build, `drizzle-kit migrate`, and restart the systemd service. It reads the app user and directory from the installed unit. Its body is wrapped in `main` so a `git pull` that rewrites the script is safe.
-- The service runs `remix-serve` on `127.0.0.1:$PORT` behind nginx.
+- `deploy.sh` updates the server: pull, `npm ci`, build, `drizzle-kit migrate`, and restart the systemd service. It reads the app user and directory from the installed unit, and switches units that still start `remix-serve` over to `server.js`. Its body is wrapped in `main` so a `git pull` that rewrites the script is safe, but that also means a changed `deploy.sh` only takes effect on the next run.
+- The service runs `server.js` on `127.0.0.1:$PORT` behind nginx. It is remix-serve's setup (Express, compression, static files, morgan) plus a `getLoadContext` that provides `context.disconnectSignal`.
 
 ## Architecture
 
@@ -65,11 +65,12 @@ Changing the limit does not clamp time that is already on the timer.
 ### Live update flow
 1. The OBS page `/timer?key&iv` (and the dashboard preview) renders `TimerPreview`, which opens an `EventSource` to `/api/timer/:id`.
 2. The stream (`api.timer.$id`):
+   - ends on `context.disconnectSignal`, not `request.signal`: Remix passes loaders copies of the request that follow the original's signal through WeakRefs, so after GC `request.signal` may never abort and the stream (and its DonationAlerts viewer) would leak. Vite dev has no load context and falls back to `request.signal`
    - subscribes through `timerEvents` (`timer-events.server.ts`), where a single shared Redis pattern subscriber fans `upd:*`/`sts:*`/`del:*` out in memory
    - sends `init` (the full hash); it sends `init` again whenever that subscriber reconnects
    - relays `upd`/`sts`, pushes DonationAlerts status as `da`, and sends `ping` every 15s
    - on `del:<id>`, sends `deleted` and closes
-   - sets `Cache-Control: no-transform`, because remix-serve's compression middleware would otherwise gzip and buffer the stream, and `X-Accel-Buffering: no` for nginx
+   - sets `Cache-Control: no-transform`, because the compression middleware would otherwise gzip and buffer the stream, and `X-Accel-Buffering: no` for nginx
 3. The client interpolates between updates with `requestAnimationFrame` (`useFrameUpdate`) and injects the timer's custom CSS. If the server returns an error it reconnects with backoff; after `deleted` it stops.
 
 ### DonationAlerts (`app/services/donation.server.ts`)
@@ -87,7 +88,7 @@ Changing the limit does not clamp time that is already on the timer.
 - The cookie session stores only `userId`; the cookie is signed, not encrypted. `utils.checkAuth(request)` loads a whitelisted set of user columns from the DB, and `utils.checkAdmin` also requires `is_admin`. Never return token columns from a loader.
 - Dashboard actions must scope timers by `user_id` from the session, never by an id from the form.
 - **Public routes:** `/timer`, `/panel` and `/api/panel` are opened from OBS without a login. The encrypted `key` + `iv` in the URL is their only credential and grants full control of the timer. That is intended, so don't add session checks to them.
-  - The dashboard timer page generates these URLs using `utils.publicOrigin`, which honours `X-Forwarded-Proto`, since remix-serve does not.
+  - The dashboard timer page generates these URLs using `utils.publicOrigin`, which honours `X-Forwarded-Proto`, since the Express server does not.
   - `/api/panel` takes `state`, `set`/`delta`, and `type` (`amount` converts RUB to time using the rate; otherwise the value is milliseconds).
 - **Login:** `/auth/login` → DonationAlerts OAuth2 (`remix-auth-oauth2`) → `/auth/callback` upserts the user and stores its id in the session. Logout does not remove the user from `daAuthProvider`, because OBS timers may still be live.
 

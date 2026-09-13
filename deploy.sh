@@ -35,6 +35,15 @@ main() {
   as_app npm run build
   echo "==> Migrate"
   as_app npx drizzle-kit migrate
+  # Units installed before server.js existed start remix-serve, which never
+  # tells timer streams that their client left.
+  local unit
+  unit="$(systemctl show -p FragmentPath --value "$SERVICE")"
+  if grep -q "remix-serve" "$unit"; then
+    echo "==> Switch $SERVICE to server.js"
+    sed -i 's|^ExecStart=.*remix-serve.*|ExecStart=/usr/bin/env node server.js|' "$unit"
+    systemctl daemon-reload
+  fi
   echo "==> Restart"
   systemctl restart "$SERVICE"
   systemctl is-active "$SERVICE"
